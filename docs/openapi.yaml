@@ -1,0 +1,376 @@
+openapi: 3.0.3
+info:
+  title: Avito Kitchen API
+  version: 1.0.0
+  description: MVP API для заказа еды из ресторанов.
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is alive
+  /api/v1/restaurants:
+    get:
+      summary: List restaurants
+      responses:
+        '200':
+          description: Restaurant list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Restaurant'
+  /api/v1/restaurants/{id}:
+    get:
+      summary: Get restaurant
+      parameters:
+        - $ref: '#/components/parameters/RestaurantID'
+      responses:
+        '200':
+          description: Restaurant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/restaurants/{id}/menu:
+    get:
+      summary: Get restaurant menu
+      parameters:
+        - $ref: '#/components/parameters/RestaurantID'
+      responses:
+        '200':
+          description: Menu items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MenuItem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/cart:
+    get:
+      summary: Get current cart
+      parameters:
+        - $ref: '#/components/parameters/SessionID'
+      responses:
+        '200':
+          description: Current cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/v1/cart/items:
+    post:
+      summary: Add item to cart
+      parameters:
+        - $ref: '#/components/parameters/SessionID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItemRequest'
+      responses:
+        '200':
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/v1/cart/items/{id}:
+    patch:
+      summary: Change cart item quantity
+      parameters:
+        - $ref: '#/components/parameters/CartItemID'
+        - $ref: '#/components/parameters/SessionID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCartItemRequest'
+      responses:
+        '200':
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      summary: Delete cart item
+      parameters:
+        - $ref: '#/components/parameters/CartItemID'
+        - $ref: '#/components/parameters/SessionID'
+      responses:
+        '204':
+          description: Item deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/v1/orders:
+    get:
+      summary: List current session orders
+      parameters:
+        - $ref: '#/components/parameters/SessionID'
+      responses:
+        '200':
+          description: Orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      summary: Create order from current cart
+      parameters:
+        - $ref: '#/components/parameters/SessionID'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Order created or idempotent result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          description: Restaurant integration failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/orders/{id}:
+    get:
+      summary: Get order
+      parameters:
+        - $ref: '#/components/parameters/OrderID'
+      responses:
+        '200':
+          description: Order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    SessionID:
+      in: header
+      name: X-Session-ID
+      required: true
+      description: Anonymous client session identifier.
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: false
+      description: Key used to safely retry order creation.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+    RestaurantID:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CartItemID:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    OrderID:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    Restaurant:
+      type: object
+      required: [id, name, description, address]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+    MenuItem:
+      type: object
+      required: [id, restaurant_id, name, description, price, available]
+      properties:
+        id:
+          type: string
+          format: uuid
+        restaurant_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: integer
+          format: int64
+          minimum: 0
+        available:
+          type: boolean
+    CartItem:
+      type: object
+      required: [id, menu_item_id, name, price, quantity]
+      properties:
+        id:
+          type: string
+          format: uuid
+        menu_item_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        price:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+          minimum: 1
+    Cart:
+      type: object
+      required: [id, session_id, items, total_price]
+      properties:
+        id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        restaurant_id:
+          type: string
+          format: uuid
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        total_price:
+          type: integer
+          format: int64
+    AddCartItemRequest:
+      type: object
+      required: [menu_item_id, quantity]
+      properties:
+        menu_item_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+    UpdateCartItemRequest:
+      type: object
+      required: [quantity]
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+    OrderItem:
+      type: object
+      required: [id, order_id, menu_item_id, name, price, quantity]
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        menu_item_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        price:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+          minimum: 1
+    Order:
+      type: object
+      required: [id, session_id, restaurant_id, status, total_price, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        restaurant_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, confirmed, failed]
+        total_price:
+          type: integer
+          format: int64
+        external_order_id:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time

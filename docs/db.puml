@@ -1,0 +1,60 @@
+@startuml
+hide methods
+hide stereotypes
+entity restaurants {
+  *id : uuid
+  --
+  name : text
+  description : text
+  address : text
+}
+entity menu_items {
+  *id : uuid
+  --
+  restaurant_id : uuid
+  name : text
+  description : text
+  price : bigint
+  available : boolean
+}
+entity carts {
+  *id : uuid
+  --
+  session_id : uuid
+  restaurant_id : uuid
+}
+entity cart_items {
+  *id : uuid
+  --
+  cart_id : uuid
+  menu_item_id : uuid
+  quantity : integer
+}
+entity orders {
+  *id : uuid
+  --
+  session_id : uuid
+  restaurant_id : uuid
+  status : text
+  total_price : bigint
+  external_order_id : text
+  idempotency_key : text
+}
+entity order_items {
+  *id : uuid
+  --
+  order_id : uuid
+  menu_item_id : uuid
+  name : text
+  price : bigint
+  quantity : integer
+}
+
+restaurants ||--o{ menu_items
+restaurants ||--o{ carts
+restaurants ||--o{ orders
+carts ||--o{ cart_items
+menu_items ||--o{ cart_items
+orders ||--o{ order_items
+menu_items ||--o{ order_items
+@enduml

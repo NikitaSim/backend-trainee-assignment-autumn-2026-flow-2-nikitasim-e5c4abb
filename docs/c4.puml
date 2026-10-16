@@ -1,0 +1,17 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+LAYOUT_WITH_LEGEND()
+
+title Avito.Kitchen — C4 Level 2
+
+Person(client, "Client", "Customer using food delivery API")
+System_Boundary(kitchen, "Avito.Kitchen") {
+  Container(api, "Kitchen API", "Go / net/http", "Restaurants, menu, cart and orders")
+  ContainerDb(db, "PostgreSQL", "PostgreSQL", "Restaurants, menu, carts and orders")
+}
+System(restaurant, "Restaurant Mock", "Example restaurant service")
+
+Rel(client, api, "Uses", "HTTP/JSON")
+Rel(api, db, "Reads/writes", "pgx")
+Rel(api, restaurant, "Creates orders", "HTTP/JSON")
+@enduml

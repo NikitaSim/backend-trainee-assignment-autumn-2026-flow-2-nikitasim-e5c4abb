@@ -1,0 +1,19 @@
+@startuml
+start
+:Open restaurant list;
+:Choose restaurant;
+:View menu;
+:Add dishes to cart;
+:Review cart;
+if (Cart valid?) then (yes)
+  :Create order;
+  if (Restaurant accepts?) then (yes)
+    :Receive confirmed order;
+  else (no)
+    :Receive delivery service error;
+  endif
+else (no)
+  :Fix cart;
+endif
+stop
+@enduml

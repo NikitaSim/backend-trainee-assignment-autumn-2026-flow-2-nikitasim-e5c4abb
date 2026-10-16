@@ -1,0 +1,15 @@
+@startuml
+start
+:Receive order from Kitchen API;
+if (Request valid?) then (yes)
+  :Create restaurant order;
+  :Set status = accepted;
+  :Prepare order;
+  :Set status = preparing;
+  :Set status = ready;
+  :Set status = delivered;
+else (no)
+  :Return 4xx error;
+endif
+stop
+@enduml

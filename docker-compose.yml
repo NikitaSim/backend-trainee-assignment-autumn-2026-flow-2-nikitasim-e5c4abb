@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: kitchen
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d kitchen"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  kitchen-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: kitchen
+    environment:
+      HTTP_PORT: 8080
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/kitchen?sslmode=disable
+      RESTAURANT_URL: http://restaurant-mock:8081
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      restaurant-mock:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/health >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  restaurant-mock:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: restaurant
+    environment:
+      HTTP_PORT: 8081
+      MOCK_FAIL_COUNT: 0
+      MOCK_FAIL_STATUS: 503
+      MOCK_DELAY_MS: 0
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8081/health >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
